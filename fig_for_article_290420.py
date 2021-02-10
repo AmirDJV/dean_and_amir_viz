@@ -6,6 +6,9 @@ Created on Wed Jan  1 19:42:01 2020
 """
 
 # Needed functions
+from ui_utils import curve_line
+
+
 def matchPartners(subject1=None, filesToProcessS2=None, locationSettings=None):
     # Test if all vars were defined
     assert len([t for t in [subject1, filesToProcessS2, locationSettings] if
@@ -40,6 +43,7 @@ def matchPartners(subject1=None, filesToProcessS2=None, locationSettings=None):
 
     return combined
 
+
 def matchDescription(epochs=None, description=None):
     assert len(epochs.drop_log) == len(description), "drop_log and description not the same length"
 
@@ -60,6 +64,7 @@ def matchDescription(epochs=None, description=None):
 
     epochs.drop_bad()
     return epochs
+
 
 def combineEpochs(epochsS1=None, epochsS2=None):
     assert len(epochsS1.drop_log) == len(epochsS2.drop_log), "drop_log not the same length"
@@ -132,6 +137,7 @@ def combineEpochs(epochsS1=None, epochsS2=None):
 
     return combined
 
+
 # Loading modules and setting up paths
 import os, sys
 import mne
@@ -144,28 +150,28 @@ from mne.connectivity import spectral_connectivity
 import winsound
 import warnings
 import re
-from mne.channels import find_ch_adjacency #Used to be find_ch_connectivity
+from mne.channels import find_ch_adjacency  # Used to be find_ch_connectivity
 import matplotlib.pyplot as plt
-from tqdm import tqdm
+# from tqdm import tqdm
 from scipy.sparse import lil_matrix, csr_matrix
 
-#I know it's no the correct way of doing things.
-path = "D:/Amir/Dropbox/Studies BIU/Ruth Feldman/hypereeg/shared/dean"
+# I know it's no the correct way of doing things.
+path = "data"
 fileExt = ".fif"
 
-#Getting all the files in the folder
-listOfFiles = [x[0]+"/"+f for x in os.walk(path) for f in x[2] if
-               f.endswith(fileExt)] 
+# Getting all the files in the folder
+listOfFiles = [x[0] + "/" + f for x in os.walk(path) for f in x[2] if
+               f.endswith(fileExt)]
 
 # This is the prerequisites.
 # Here I'm uploading files two participants, combining them to one, and calculated their
 # new electrodes physical positions for later viz.
 
-#locations for cap1 and cap2 in the combined file
+# locations for cap1 and cap2 in the combined file
 from mpl_toolkits.mplot3d import Axes3D
 from copy import copy
 
-#Creating combined object
+# Creating combined object
 s1 = listOfFiles[0]
 s2 = listOfFiles[listOfFiles.index(s1.replace("SUBJECT1", "SUBJECT2"))]
 epochsS1 = mne.read_epochs(s1, preload=True)
@@ -174,7 +180,7 @@ epochsS1.rename_channels(dict(zip(epochsS1.info["ch_names"], [i + "-0" for i in 
 epochsS2.rename_channels(dict(zip(epochsS2.info["ch_names"], [i + "-1" for i in epochsS2.info["ch_names"]])))
 combined = combineEpochs(epochsS1=epochsS1, epochsS2=epochsS2)
 
-#Calculating locations
+# Calculating locations
 locations = copy(np.array([ch['loc'] for ch in combined.info['chs']]))
 cap1_locations = locations[:31, :3]
 print("Mean: ", np.nanmean(cap1_locations, axis=0))
@@ -195,10 +201,10 @@ print("Min: ", np.nanmin(cap2_locations, axis=0))
 print("Max: ", np.nanmax(cap2_locations, axis=0))
 sens_loc = np.concatenate((cap1_locations, cap2_locations), axis=0)
 
-#testing that the new locations and the old locations are at the same length
+# testing that the new locations and the old locations are at the same length
 assert len([ch['loc'] for ch in combined.info['chs']]) == len(sens_loc), "the caps locations are not in the same length"
 
-#Changing location 
+# Changing location
 for old, new in enumerate(sens_loc):
     combined.info["chs"][old]["loc"][0:3] = new[0:3]
 
@@ -206,34 +212,37 @@ locationSettings = combined.info["chs"].copy()
 
 del cap1_locations, cap2_locations, old, new, newX, newY, rotZ, translate, s1, s2
 
+
 ##Plot two caps connectivity
 def capTest(x):
     if x >= 31:
         out = x - 31
     else:
-        out = x 
-    return(out)
+        out = x
+    return (out)
 
-#Brain areas
-centerS1  = ['Cz-0', 'C3-0', 'C4-0']
+
+# Brain areas
+centerS1 = ['Cz-0', 'C3-0', 'C4-0']
 leftTemporalS1 = ["FT9-0", "TP9-0", "T7-0"]
-rightTemporalS1 = ["FT10-0", "TP10-0",  "T8-0"]
+rightTemporalS1 = ["FT10-0", "TP10-0", "T8-0"]
 
 chToTake = [i[:-2] for i in centerS1 + leftTemporalS1 + rightTemporalS1]
 
-#areas = [[i[:-2] + "-1" for i in centerS1] + centerS1, 
+# areas = [[i[:-2] + "-1" for i in centerS1] + centerS1,
 #         [i[:-2] + "-1" for i in leftTemporalS1] + leftTemporalS1, 
 #         [i[:-2] + "-1" for i in rightTemporalS1] + rightTemporalS1]
 
-areas = [[i[:-2] for i in centerS1], 
-         [i[:-2] for i in leftTemporalS1], 
+areas = [[i[:-2] for i in centerS1],
+         [i[:-2] for i in leftTemporalS1],
          [i[:-2] for i in rightTemporalS1]]
 
 sensloc = np.array([c['loc'][:3] for c in combined.info['chs']][:62])
 
 #####################Creating plot for example####################
 import mayavi.mlab as mlab
-import moviepy.editor as mpy
+
+# import moviepy.editor as mpy
 
 con = np.zeros([62, 62])
 con.size
@@ -242,47 +251,46 @@ for e1 in range(62):
     for e2 in range(62):
         for area in areas:
             i = 1
-            #Between
-#            if combined.info["ch_names"][e1][:-2] in area and combined.info["ch_names"][e2][:-2] in area:
-#                k1, k2 = list(map(capTest, [e1, e2]))
-#                if e1 <= 30 and e2 >= 31:
-#                    con[e1][e2] = 0.5
-#                    Itook.append([combined.info["ch_names"][e1], e1, combined.info["ch_names"][e2], e2])        
+            # Between
+            #            if combined.info["ch_names"][e1][:-2] in area and combined.info["ch_names"][e2][:-2] in area:
+            #                k1, k2 = list(map(capTest, [e1, e2]))
+            #                if e1 <= 30 and e2 >= 31:
+            #                    con[e1][e2] = 0.5
+            #                    Itook.append([combined.info["ch_names"][e1], e1, combined.info["ch_names"][e2], e2])
 
-            #Cap1 
+            # Cap1
             if combined.info["ch_names"][e1][:-2] in area and combined.info["ch_names"][e2][:-2] in area:
                 k1, k2 = list(map(capTest, [e1, e2]))
                 if e1 <= 30 and e2 <= 30 and e1 != e2:
                     con[e1][e2] = 1
-#                    Itook.append([combined.info["ch_names"][e1], e1, combined.info["ch_names"][e2], e2])
-            #Cap2
+            #                    Itook.append([combined.info["ch_names"][e1], e1, combined.info["ch_names"][e2], e2])
+            # Cap2
             if combined.info["ch_names"][e1][:-2] in area and combined.info["ch_names"][e2][:-2] in area:
                 k1, k2 = list(map(capTest, [e1, e2]))
                 if e1 >= 31 and e2 >= 31 and e1 != e2:
                     con[e1][e2] = 1
-#                    Itook.append([combined.info["ch_names"][e1], e1, combined.info["ch_names"][e2], e2])        
-    
-    sum(con==1)
+    #                    Itook.append([combined.info["ch_names"][e1], e1, combined.info["ch_names"][e2], e2])
+
+    sum(con == 1)
 
 A = csr_matrix(con.tolist())
 
 mlab.clf()
-#Ploting caps
+# Ploting caps
 fig = mlab.figure(size=(600, 600), bgcolor=(1, 1, 1))
 points = mlab.points3d(sens_loc[:, 0], sens_loc[:, 1], sens_loc[:, 2],
-                  color=(0.5, 0.5, 0.5), opacity=1, scale_factor=0.005,
-                  figure=fig)
+                       color=(0.5, 0.5, 0.5), opacity=1, scale_factor=0.005,
+                       figure=fig)
 
-#Set view
-mlab.view(azimuth = 180, distance = 0.7, focalpoint="auto")
+# Set view
+mlab.view(azimuth=180, distance=0.7, focalpoint="auto")
 
 #######
 # Get the strongest connections
-n_con = len(con)**2  # show up to 3844 connections
+n_con = len(con) ** 2  # show up to 3844 connections
 min_dist = 0  # exclude sensors that are less than 5cm apart
-threshold = np.sort(con, axis=None)[-n_con] #sort the con by size and pick the index of n_con
+threshold = np.sort(con, axis=None)[-n_con]  # sort the con by size and pick the index of n_con
 ii, jj = np.where(con > 0)
-
 
 # Remove close connections
 con_nodes = list()
@@ -292,12 +300,11 @@ for i, j in zip(ii, jj):
         con_nodes.append((i, j))
         con_val.append(con[i, j])
 
-
 con_val = np.array(con_val)
 
 # Show the connections as tubes between sensors
 
-#By General - all in the same color.
+# By General - all in the same color.
 
 # TODO Here I'm creating triangles for the areas I averaged.
 # However, I need to reverse this to from one electrode to another.
@@ -307,34 +314,32 @@ for val, nodes in zip(con_val, con_nodes):
     x1, y1, z1 = sens_loc[nodes[0]]
     x2, y2, z2 = sens_loc[nodes[1]]
     lines = mlab.plot3d([x1, x2], [y1, y2], [z1, z2], [val, val],
-                             vmin=vmin, vmax=vmax, tube_radius=0.0002,
-                             colormap='blue-red')
+                        vmin=vmin, vmax=vmax, tube_radius=0.0002,
+                        colormap='blue-red')
     lines.module_manager.scalar_lut_manager.reverse_lut = True
 
-#Creating te lines from the center of each triangle.
-# TODO the lines should be curved, not actual lines.
-for area, color in zip(areas, [(1,0,0), #central
-                                 (0, 1, 0),  #left
-                                 (0, 0, 1)]): #right 
-    #subject1
+# Creating tיe lines from the center of each triangle.
+for area, color in zip(areas, [(1, 0, 0),  # central
+                               (0, 1, 0),  # left
+                               (0, 0, 1)]):  # right
+    # subject1
     for a in area:
-        x1, y1, z1 = np.array([sens_loc[combined.info["ch_names"].index(a + "-0")] for a in area]).mean(axis = 0)
-    #subject1
+        x1, y1, z1 = np.array([sens_loc[combined.info["ch_names"].index(a + "-0")] for a in area]).mean(axis=0)
+    # subject1
     for a in area:
-        x2, y2, z2 = np.array([sens_loc[combined.info["ch_names"].index(a + "-1")] for a in area]).mean(axis = 0)
-        linesTriangle = mlab.plot3d([x1, x2], [y1, y2], [z1, z2], [val, val],
-                                    vmin=vmin, vmax=vmax, tube_radius=0.002,
-                                    color= color) 
-        
+        x2, y2, z2 = np.array([sens_loc[combined.info["ch_names"].index(a + "-1")] for a in area]).mean(axis=0)
 
-## Add the sensor names for the connections shown
-#nodes_shown = list(set([n[0] for n in con_nodes] +
+        x, y, z = curve_line(p1=np.array([x1, y1, z1]), p2=np.array([x2, y2, z2]), amp=0.2)
+        linesTriangle = mlab.plot3d(x, y, z, vmin=vmin, vmax=vmax, tube_radius=0.002, color=color)
+
+    ## Add the sensor names for the connections shown
+# nodes_shown = list(set([n[0] for n in con_nodes] +
 #                       [n[1] for n in con_nodes]))
 
 nodes_shown = list(range(0, 62))
 
 chNames = []
-#Changing channels name as letters -M / -F
+# Changing channels name as letters -M / -F
 for i, c in enumerate(combined.info["ch_names"]):
     if c[:-2] in chToTake:
         if c[-1] == "0":
@@ -342,7 +347,7 @@ for i, c in enumerate(combined.info["ch_names"]):
         elif c[-1] == "1":
             chNames.append(c[:-1] + "F")
 
-#Channels name as letters -M / -F
+# Channels name as letters -M / -F
 picks = np.array(list(range(0, len(chNames))))
 
 counterif = -1
@@ -354,10 +359,8 @@ for i, node in enumerate(nodes_shown):
                     scale=0.005,
                     color=(0, 0, 0))
 
-
+mlab.show()
 # TODO
-#HERE I need to add the brains under each cap
+# HERE I need to add the brains under each cap
 # MNE's brains are actually taken from here: https://pysurfer.github.io
 # Brain example can be found here: https://mne.tools/stable/auto_tutorials/preprocessing/plot_70_fnirs_processing.html#view-location-of-sensors-over-brain-surface
-
-
