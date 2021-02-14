@@ -180,6 +180,8 @@ epochsS1.rename_channels(dict(zip(epochsS1.info["ch_names"], [i + "-0" for i in 
 epochsS2.rename_channels(dict(zip(epochsS2.info["ch_names"], [i + "-1" for i in epochsS2.info["ch_names"]])))
 combined = combineEpochs(epochsS1=epochsS1, epochsS2=epochsS2)
 
+
+
 # Calculating locations
 locations = copy(np.array([ch['loc'] for ch in combined.info['chs']]))
 cap1_locations = locations[:31, :3]
@@ -360,6 +362,10 @@ for i, node in enumerate(nodes_shown):
                     color=(0, 0, 0))
 
 mlab.show()
+
+
+
+
 # TODO
 # HERE I need to add the brains under each cap
 # MNE's brains are actually taken from here: https://pysurfer.github.io
